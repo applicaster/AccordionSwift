@@ -25,8 +25,14 @@ public final class DataSourceProvider<DataSource: DataSourceType,
     public typealias DidSelectParentAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item?) -> Void
     public typealias DidSelectChildAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item.ChildItem?) -> Void
     
+    public typealias DidDeselectParentAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item?) -> Void
+    public typealias DidDeselectChildAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item.ChildItem?) -> Void
+
     public typealias HeightForChildAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item.ChildItem?) -> CGFloat
     public typealias HeightForParentAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item?) -> CGFloat
+    
+    public typealias ContextMenuConfigurationForParentCellAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item?) -> NSObject?
+    public typealias ContextMenuConfigurationForChildCellAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item.ChildItem?) -> NSObject?
     
     private typealias ParentCell = IndexPath
     
@@ -56,14 +62,26 @@ public final class DataSourceProvider<DataSource: DataSourceType,
     /// The closure to be called when a Parent cell is selected
     private let didSelectParentAtIndexPath: DidSelectParentAtIndexPathClosure?
     
+    /// The closure to be called when a Parent cell is unselected
+    private let didDeselectParentAtIndexPath: DidDeselectParentAtIndexPathClosure?
+    
     /// The closure to be called when a Child cell is selected
     private let didSelectChildAtIndexPath: DidSelectChildAtIndexPathClosure?
+    
+    /// The closure to be called when a Child cell is unselected
+    private let didDeselectChildAtIndexPath: DidDeselectChildAtIndexPathClosure?
     
     /// The closure to define the height of the Parent cell at the specified IndexPath
     private let heightForParentCellAtIndexPath: HeightForParentAtIndexPathClosure?
     
     /// The closure to define the height of the Child cell at the specified IndexPath
     private let heightForChildCellAtIndexPath: HeightForChildAtIndexPathClosure?
+    
+    /// The closure to define the height of the Parent cell at the specified IndexPath
+    private let contextMenuConfigurationForParentCellAtIndexPath: ContextMenuConfigurationForParentCellAtIndexPathClosure?
+    
+    /// The closure to define the height of the Parent cell at the specified IndexPath
+    private let contextMenuConfigurationForChildCellAtIndexPath: ContextMenuConfigurationForChildCellAtIndexPathClosure?
     
     /// The closure to be called when scrollView is scrolled
     private let scrollViewDidScroll: ScrollViewDidScrollClosure?
@@ -79,9 +97,13 @@ public final class DataSourceProvider<DataSource: DataSourceType,
                 parentCellConfig: ParentCellConfig,
                 childCellConfig: ChildCellConfig,
                 didSelectParentAtIndexPath: DidSelectParentAtIndexPathClosure? = nil,
+                didDeselectParentAtIndexPath: DidDeselectParentAtIndexPathClosure? = nil,
                 didSelectChildAtIndexPath: DidSelectChildAtIndexPathClosure? = nil,
+                didDeselectChildAtIndexPath: DidDeselectChildAtIndexPathClosure? = nil,
                 heightForParentCellAtIndexPath: HeightForParentAtIndexPathClosure? = nil,
                 heightForChildCellAtIndexPath: HeightForChildAtIndexPathClosure? = nil,
+                contextMenuConfigurationForParentCellAtIndexPath: ContextMenuConfigurationForParentCellAtIndexPathClosure? = nil,
+                contextMenuConfigurationForChildCellAtIndexPath: ContextMenuConfigurationForChildCellAtIndexPathClosure? = nil,
                 scrollViewDidScroll: ScrollViewDidScrollClosure? = nil,
                 numberOfExpandedParentCells: NumberOfExpandedParentCells = .multiple
     ) {
@@ -89,9 +111,13 @@ public final class DataSourceProvider<DataSource: DataSourceType,
         self.parentCellConfig = parentCellConfig
         self.childCellConfig = childCellConfig
         self.didSelectParentAtIndexPath = didSelectParentAtIndexPath
+        self.didDeselectParentAtIndexPath = didDeselectParentAtIndexPath
         self.didSelectChildAtIndexPath = didSelectChildAtIndexPath
+        self.didDeselectChildAtIndexPath = didDeselectChildAtIndexPath
         self.heightForParentCellAtIndexPath = heightForParentCellAtIndexPath
         self.heightForChildCellAtIndexPath = heightForChildCellAtIndexPath
+        self.contextMenuConfigurationForParentCellAtIndexPath = contextMenuConfigurationForParentCellAtIndexPath
+        self.contextMenuConfigurationForChildCellAtIndexPath = contextMenuConfigurationForChildCellAtIndexPath
         self.scrollViewDidScroll = scrollViewDidScroll
         self.numberOfExpandedParentCells = numberOfExpandedParentCells
         self.dataSource = dataSource
@@ -252,6 +278,10 @@ public final class DataSourceProvider<DataSource: DataSourceType,
     ///   - indexPaths: The last IndexPath of the new cells expanded
     ///   - tableView: The UITableView to update
     private func scrollCellIfNeeded(atIndexPath indexPath: IndexPath, _ tableView: UITableView) {
+        guard let _ = scrollViewDidScroll else {
+            //prevent scrolling to bottom if delegate method not defined
+            return
+        }
         
         let cellRect = tableView.rectForRow(at: indexPath)
         
@@ -345,6 +375,32 @@ extension DataSourceProvider {
                 let index = indexPath.row - currentPosition - 1
                 let childItem = index >= 0 ? item?.children[index] : nil
                 self.didSelectChildAtIndexPath?(tableView, indexPath, childItem)
+            }
+        }
+        
+        delegate.didDeselectRowAtIndexPath = { [unowned self] (tableView, indexPath) -> Void in
+            let (parentIndex, isParent, currentPosition) = self.dataSource.findParentOfCell(atIndexPath: indexPath)
+            let item = self.dataSource.item(atRow: parentIndex, inSection: indexPath.section)
+            
+            if isParent {
+                self.didDeselectParentAtIndexPath?(tableView, indexPath, item)
+            } else {
+                let index = indexPath.row - currentPosition - 1
+                let childItem = index >= 0 ? item?.children[index] : nil
+                self.didDeselectChildAtIndexPath?(tableView, indexPath, childItem)
+            }
+        }
+        
+        delegate.contextMenuConfigurationForRowAt = { [unowned self] (tableView, indexPath) -> NSObject? in
+            let (parentIndex, isParent, currentPosition) = self.dataSource.findParentOfCell(atIndexPath: indexPath)
+            let item = self.dataSource.item(atRow: parentIndex, inSection: indexPath.section)
+            
+            if isParent {
+                return self.contextMenuConfigurationForParentCellAtIndexPath?(tableView, indexPath, item)
+            } else {
+                let index = indexPath.row - currentPosition - 1
+                let childItem = index >= 0 ? item?.children[index] : nil
+                return self.contextMenuConfigurationForChildCellAtIndexPath?(tableView, indexPath, childItem)
             }
         }
         

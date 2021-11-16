@@ -9,6 +9,9 @@
 import UIKit
 
 typealias DidSelectRowAtIndexPathClosure = (UITableView, IndexPath) -> Void
+typealias DidDeselectRowAtIndexPathClosure = (UITableView, IndexPath) -> Void
+typealias ContextMenuConfigurationForRowAtClosure = (UITableView, IndexPath) -> NSObject?
+
 typealias HeightForRowAtIndexPathClosure = (UITableView, IndexPath) -> CGFloat
 public typealias ScrollViewDidScrollClosure = (UIScrollView) -> Void
 
@@ -17,9 +20,12 @@ public typealias ScrollViewDidScrollClosure = (UIScrollView) -> Void
     // MARK: - Properties
     
     var didSelectRowAtIndexPath: DidSelectRowAtIndexPathClosure?
+    var didDeselectRowAtIndexPath: DidDeselectRowAtIndexPathClosure?
     var heightForRowAtIndexPath: HeightForRowAtIndexPathClosure?
-    
+    var contextMenuConfigurationForRowAt: ContextMenuConfigurationForRowAtClosure?
+
     var scrollViewDidScrollClosure: ScrollViewDidScrollClosure?
+
 }
 
 extension TableViewDelegate: UITableViewDelegate {
@@ -28,8 +34,17 @@ extension TableViewDelegate: UITableViewDelegate {
         didSelectRowAtIndexPath?(tableView, indexPath)
     }
     
+    func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
+        didDeselectRowAtIndexPath?(tableView, indexPath)
+    }
+    
     @objc func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return heightForRowAtIndexPath!(tableView, indexPath)
+    }
+    
+    @available(iOS 13.0, *)
+    func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        return contextMenuConfigurationForRowAt?(tableView, indexPath) as? UIContextMenuConfiguration
     }
 }
 
