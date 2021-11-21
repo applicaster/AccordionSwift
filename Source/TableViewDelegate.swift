@@ -70,6 +70,7 @@ extension TableViewDelegate: UITableViewDelegate {
 
     @available(iOS 13.0, *)
     func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
         return contextMenuConfigurationForRowAt?(tableView, indexPath) as? UIContextMenuConfiguration
     }
 }
