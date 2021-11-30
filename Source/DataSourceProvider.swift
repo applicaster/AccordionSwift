@@ -41,13 +41,13 @@ public final class DataSourceProvider<DataSource: DataSourceType,
 
     public typealias ContextMenuConfigurationForParentCellAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item?) -> NSObject?
     public typealias ContextMenuConfigurationForChildCellAtIndexPathClosure = (UITableView, IndexPath, DataSource.Item.ChildItem?) -> NSObject?
-    
+
     public typealias HeaderViewForSectionAtIndexClosure = (String?, Int) -> UIView?
     public typealias FooterViewForSectionAtIndexClosure = (String?, Int) -> UIView?
 
     public typealias HeaderHeightForSectionAtIndexClosure = (Int) -> CGFloat
     public typealias FooterHeightForSectionAtIndexClosure = (Int) -> CGFloat
-    
+
     private typealias ParentCell = IndexPath
 
     // MARK: - Properties
@@ -97,7 +97,6 @@ public final class DataSourceProvider<DataSource: DataSourceType,
     /// The closure to define the height of the Parent cell at the specified IndexPath
     private let contextMenuConfigurationForChildCellAtIndexPath: ContextMenuConfigurationForChildCellAtIndexPathClosure?
 
-    
     /// The closure to define the custom header view for the section
     private let headerViewForSectionAtIndex: HeaderViewForSectionAtIndexClosure?
 
@@ -118,11 +117,11 @@ public final class DataSourceProvider<DataSource: DataSourceType,
 
     ///// - Parameter section: A section in the data source.
     ///// - Returns: The footer view for the specified section.
-    //func headerView(inSection section: Int) -> UIView?
+    // func headerView(inSection section: Int) -> UIView?
     //
     ///// - Parameter section: A section in the data source.
     ///// - Returns: The footer view for the specified section.
-    //func footerView(inSection section: Int) -> UIView?
+    // func footerView(inSection section: Int) -> UIView?
 
     // MARK: - Initialization
 
@@ -284,7 +283,12 @@ public final class DataSourceProvider<DataSource: DataSourceType,
         // then update the selected parent index to be correct due to the currentlyExpandedParent's children being removed
         if toBeExpandedParent.item > expandedParent.item {
             let numberChildrenOfExpandedParent = getNumberOfChildren(parent: expandedParent, dataSourceIndex: expandedParent.item)
-            return IndexPath(item: toBeExpandedParent.item - numberChildrenOfExpandedParent, section: toBeExpandedParent.section)
+
+            var item = toBeExpandedParent.item
+            if toBeExpandedParent.item - numberChildrenOfExpandedParent > 0 {
+                item = toBeExpandedParent.item - numberChildrenOfExpandedParent
+            }
+            return IndexPath(item: item, section: toBeExpandedParent.section)
         }
         return toBeExpandedParent
     }
@@ -461,7 +465,7 @@ extension DataSourceProvider {
         delegate.scrollViewDidScrollClosure = { [unowned self] (scrollView) -> Void in
             self.scrollViewDidScroll?(scrollView)
         }
-        
+
         delegate.tableViewForHeaderInSection = { [unowned self] (sectionIndex) -> UIView? in
             let sectionTitle = self.dataSource.headerTitle(inSection: sectionIndex)
             return self.headerViewForSectionAtIndex?(sectionTitle, sectionIndex)
@@ -471,13 +475,13 @@ extension DataSourceProvider {
             let footerTitle = self.dataSource.footerTitle(inSection: sectionIndex)
             return self.footerViewForSectionAtIndex?(footerTitle, sectionIndex)
         }
-        
+
         delegate.heightForHeaderInSection = { [unowned self] (sectionIndex) -> CGFloat in
-            return self.headerHeightForSectionAtIndex?(sectionIndex) ?? 35
+            self.headerHeightForSectionAtIndex?(sectionIndex) ?? 35
         }
-        
+
         delegate.heightForFooterInSection = { [unowned self] (sectionIndex) -> CGFloat in
-            return self.footerHeightForSectionAtIndex?(sectionIndex) ?? 5
+            self.footerHeightForSectionAtIndex?(sectionIndex) ?? 5
         }
 
         return delegate
